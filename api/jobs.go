@@ -814,7 +814,7 @@ func (p *PeriodicConfig) Canonicalize() {
 		p.Spec = pointerOf("")
 	}
 	if p.Specs == nil {
-		p.Specs = pointerOf([]string{""})
+		p.Specs = pointerOf([]string{})
 	}
 	if p.SpecType == nil {
 		p.SpecType = pointerOf(PeriodicSpecCron)
