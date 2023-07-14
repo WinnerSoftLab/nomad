@@ -230,6 +230,7 @@ func parsePeriodic(result **api.PeriodicConfig, list *ast.ObjectList) error {
 	valid := []string{
 		"enabled",
 		"cron",
+		"crons",
 		"prohibit_overlap",
 		"time_zone",
 	}
@@ -249,6 +250,12 @@ func parsePeriodic(result **api.PeriodicConfig, list *ast.ObjectList) error {
 	if cron, ok := m["cron"]; ok {
 		m["SpecType"] = api.PeriodicSpecCron
 		m["Spec"] = cron
+	}
+
+	// If "crons" is provided, set the type to "cron" and store the spec.
+	if cron, ok := m["crons"]; ok {
+		m["SpecType"] = api.PeriodicSpecCron
+		m["Specs"] = cron
 	}
 
 	// Build the constraint
