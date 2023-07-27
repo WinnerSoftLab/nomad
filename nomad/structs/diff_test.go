@@ -493,6 +493,60 @@ func TestJobDiff(t *testing.T) {
 			},
 		},
 		{
+			// Periodic added
+			Old: &Job{},
+			New: &Job{
+				Periodic: &PeriodicConfig{
+					Enabled:         false,
+					Spec:            "*-*-* 15:00",
+					SpecType:        "systemd",
+					ProhibitOverlap: false,
+					TimeZone:        "Europe/Minsk",
+				},
+			},
+			Expected: &JobDiff{
+				Type: DiffTypeEdited,
+				Objects: []*ObjectDiff{
+					{
+						Type: DiffTypeAdded,
+						Name: "Periodic",
+						Fields: []*FieldDiff{
+							{
+								Type: DiffTypeAdded,
+								Name: "Enabled",
+								Old:  "",
+								New:  "false",
+							},
+							{
+								Type: DiffTypeAdded,
+								Name: "ProhibitOverlap",
+								Old:  "",
+								New:  "false",
+							},
+							{
+								Type: DiffTypeAdded,
+								Name: "Spec",
+								Old:  "",
+								New:  "*-*-* 15:00",
+							},
+							{
+								Type: DiffTypeAdded,
+								Name: "SpecType",
+								Old:  "",
+								New:  "systemd",
+							},
+							{
+								Type: DiffTypeAdded,
+								Name: "TimeZone",
+								Old:  "",
+								New:  "Europe/Minsk",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			// Periodic multiple times added
 			Old: &Job{},
 			New: &Job{

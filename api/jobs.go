@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/cronexpr"
+	"github.com/WinnerSoftLab/cronexpr"
 )
 
 const (
@@ -30,6 +30,9 @@ const (
 
 	// PeriodicSpecCron is used for a cron spec.
 	PeriodicSpecCron = "cron"
+
+	// PeriodicSpecSystemd is used for a systemd timers spec.
+	PeriodicSpecSystemd = "systemd"
 
 	// DefaultNamespace is the default namespace.
 	DefaultNamespace = "default"
@@ -832,11 +835,12 @@ func (p *PeriodicConfig) Canonicalize() {
 // returned. The `time.Location` of the returned value matches that of the
 // passed time.
 func (p *PeriodicConfig) Next(fromTime time.Time) (time.Time, error) {
+	if p != nil {
+		return time.Time{}, nil
+	}
 	// Once spec parsing
-	if p != nil && *p.SpecType == PeriodicSpecCron {
-		if p.Spec != nil && *p.Spec != "" {
-			return cronParseNext(fromTime, *p.Spec)
-		}
+	if p.Spec != nil && *p.Spec != "" {
+		return cronParseNext(fromTime, *p.Spec, *p.SpecType)
 	}
 
 	// multiple specs parsing
@@ -844,7 +848,7 @@ func (p *PeriodicConfig) Next(fromTime time.Time) (time.Time, error) {
 	var nextTime time.Time
 	var err error
 	for i, spec := range p.Specs {
-		times[i], err = cronParseNext(fromTime, spec)
+		times[i], err = cronParseNext(fromTime, spec, *p.SpecType)
 		if err != nil {
 			return time.Time{}, fmt.Errorf("failed parsing cron expression %s: %v", spec, err)
 		}
@@ -862,18 +866,28 @@ func (p *PeriodicConfig) Next(fromTime time.Time) (time.Time, error) {
 // but captures any panic that may occur in the underlying library.
 // ---  THIS FUNCTION IS REPLICATED IN nomad/structs/structs.go
 // and should be kept in sync.
-func cronParseNext(fromTime time.Time, spec string) (t time.Time, err error) {
+func cronParseNext(fromTime time.Time, spec string, SpecType string) (t time.Time, err error) {
 	defer func() {
 		if recover() != nil {
 			t = time.Time{}
 			err = fmt.Errorf("failed parsing cron expression: %q", spec)
 		}
 	}()
-	exp, err := cronexpr.Parse(spec)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed parsing cron expression: %s: %v", spec, err)
+	switch SpecType {
+	case PeriodicSpecCron:
+		exp, err := cronexpr.Parse(spec)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("failed parsing cron expression: %s: %v", spec, err)
+		}
+		return exp.Next(fromTime), nil
+	case PeriodicSpecSystemd:
+		exp, err := cronexpr.ParseSystemd(spec)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("failed parsing cron expression: %s: %v", spec, err)
+		}
+		return exp.Next(fromTime), nil
 	}
-	return exp.Next(fromTime), nil
+	return time.Time{}, nil
 }
 
 func (p *PeriodicConfig) GetLocation() (*time.Location, error) {
